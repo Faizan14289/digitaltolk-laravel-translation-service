@@ -74,8 +74,8 @@ This setup creates an isolated environment with all necessary services.
 
 1.  **Clone the repository:**
     ```bash
-    git clone <REPLACE_WITH_YOUR_GITHUB_REPO_URL>
-    cd <REPLACE_WITH_YOUR_REPO_DIRECTORY>
+    git clone https://github.com/Faizan14289/digitaltolk-laravel-translation-service.git
+    cd translation-service
     ```
 2.  **Configure Environment:**
     *   Copy `.env.example` to `.env`.
@@ -130,8 +130,8 @@ Run the application directly on your host machine.
 
 1.  **Clone the repository:**
     ```bash
-    git clone <REPLACE_WITH_YOUR_GITHUB_REPO_URL>
-    cd <REPLACE_WITH_YOUR_REPO_DIRECTORY>
+    git clone https://github.com/Faizan14289/digitaltolk-laravel-translation-service.git
+    cd translation-service
     ```
 2.  **Install Dependencies:**
     ```bash
