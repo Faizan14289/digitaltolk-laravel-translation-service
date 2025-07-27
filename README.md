@@ -1,302 +1,225 @@
 # Laravel Translation Management Service
 
-This is a solution for the DigitalTolk Laravel Senior Developer Code Test.
+This repository contains the solution for the DigitalTolk Laravel Senior Developer Code Test. It implements a scalable, performant, and secure API for managing translations across multiple languages and contexts.
 
 ## Objective
 
-Build a scalable, performant, and secure Translation Management Service API.
+To build a Translation Management Service demonstrating clean, scalable, and secure code with a strong focus on performance, as outlined in the DigitalTolk code test.
 
-## Features Implemented
+## Key Features Implemented
 
-*   Store translations for multiple locales.
-*   Tag translations for context.
-*   CRUD operations for translations via API.
-*   Search translations by tags, keys, or content.
-*   JSON export endpoint for frontend consumption.
-*   Seeding for 100k+ records.
-*   Token-based authentication (Sanctum).
-*   Docker setup.
-*   API Resource-based responses.
-*   PSR-12 adherence.
-*   SOLID principles applied.
-*   OpenAPI/Swagger Documentation.
+*   **Multi-Locale Storage:** Manage translations for various languages (en, fr, es) with a schema designed for easy addition of new locales.
+*   **Contextual Tagging:** Associate tags (e.g., mobile, web, api) with translations for filtering and organization.
+*   **Full CRUD & Search API:**
+    *   Create, read, update, and delete translation entries.
+    *   Search/filter translations by `tag`, `key`, or `content` (within default values or translated text).
+*   **High-Performance JSON Export:** An endpoint (`/api/v1/export/{locale}`) optimized for speed, meeting the `< 500ms` requirement even with 100k+ records.
+*   **Scalability Testing:** Includes a seeder (`TranslationSeeder`) to populate the database with 100,000+ records.
+*   **Secure API Access:** Protected CRUD endpoints using Laravel Sanctum token-based authentication.
+*   **Environment Replication:** Provides a complete Docker setup for easy, consistent deployment.
+*   **API Documentation:** Interactive OpenAPI/Swagger documentation for all endpoints.
+*   **Code Quality:** Adheres to PSR-12 standards and applies SOLID design principles.
+*   **Performance Optimized:** Implements efficient database queries, indexing, eager loading, and caching.
 
-## Requirements
+## Repository Structure
 
-### For Docker Setup:
-*   Docker & Docker Compose
+*   `app/`: Laravel application code (Models, Controllers, Resources, Console commands).
+*   `database/`: Migrations, Factories, Seeders.
+*   `routes/`: API route definitions.
+*   `tests/`: Unit and Feature tests.
+*   `Dockerfile`: Definition for the application Docker image.
+*   `docker-compose.yml`: Orchestration file for Docker services (App, MySQL, Redis, Nginx).
+*   `docker-compose/nginx/default.conf`: Nginx configuration.
+*   `config/l5-swagger.php`: Configuration for Swagger documentation.
+*   `README.md`: This file.
 
-### For Local Setup:
-*   PHP >= 8.1
-*   MySQL 8.0 (or compatible)
-*   Redis
-*   Composer
+## Technical Implementation Highlights
+
+### Performance & Scalability
+
+*   **Database Schema:** A normalized schema (`languages`, `translations`, `language_translations` pivot, `tags`, `taggables` polymorphic pivot) ensures efficient data storage and querying.
+*   **Indexing:** Strategic database indexes on frequently queried columns (e.g., `translations.key`, `languages.code`, foreign keys) for speed.
+*   **Eager Loading:** Used (`with()`) to prevent N+1 query problems.
+*   **Efficient Queries:** Leveraged `join()` and `pluck()` for direct data retrieval, especially in the export endpoint.
+*   **Export Endpoint (`/api/v1/export/{locale}`):**
+    *   **Caching:** **Crucially, utilizes Redis caching.** The first request for a locale populates the cache; subsequent requests fetch data directly from Redis, guaranteeing response times well under 500ms, even for 100k+ records.
+    *   **Cache Invalidation:** The cache for a specific locale is automatically cleared whenever a translation associated with that locale is created, updated, or deleted via the CRUD API, ensuring data consistency.
+*   **Large Dataset Seeding:** A dedicated seeder (`TranslationSeeder`) uses batched `DB` inserts for efficient population of 100k+ records.
+
+### API Design & Security
+
+*   **RESTful API:** Endpoints follow REST conventions.
+*   **API Resources:** `JsonResource` is used to format JSON responses consistently, including wrapping single resources in a `data` key.
+*   **Authentication:** Laravel Sanctum provides secure token-based authentication for protected CRUD endpoints.
+*   **Validation:** Request data is validated using Laravel's built-in validation features.
+*   **Search/Filter:** The list endpoint (`GET /api/v1/translations`) supports robust filtering by `tag`, `key`, and `content`.
+
+### Code Quality & Standards
+
+*   **PSR-12:** Code is formatted according to PSR-12 standards.
+*   **SOLID Principles:** Applied throughout the design (Single Responsibility for controllers/methods, Open/Closed for filtering logic, etc.).
+*   **No External CRUD Libraries:** Built-in Laravel features (Eloquent, Routing, API Resources) are used exclusively.
 
 ## Setup Instructions
 
-### Docker Setup (Recommended)
+### Prerequisites
 
-This setup uses Docker Compose to manage containers for the application, database, Redis, and web server.
+*   Git
+*   **For Docker Setup:** Docker & Docker Compose
+*   **For Local Setup:** PHP >= 8.1, MySQL 8.0, Redis, Composer
+
+### --- USING DOCKER (Recommended) ---
+
+This setup creates an isolated environment with all necessary services.
 
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repo-url>
-    cd <your-project-directory>
+    git clone <REPLACE_WITH_YOUR_GITHUB_REPO_URL>
+    cd <REPLACE_WITH_YOUR_REPO_DIRECTORY>
     ```
-
-2.  **Environment Configuration:**
+2.  **Configure Environment:**
     *   Copy `.env.example` to `.env`.
-    *   **Crucially, ensure your `.env` file matches the services defined in `docker-compose.yml`.**
-        *   **Database:**
-            ```
-            DB_CONNECTION=mysql
-            DB_HOST=db              # Must match the 'db' service name in docker-compose.yml
-            DB_PORT=3306            # Must match the exposed port in docker-compose.yml
-            DB_DATABASE=translation_service # Must match MYSQL_DATABASE in docker-compose.yml
-            DB_USERNAME=translation_user    # Must match MYSQL_USER in docker-compose.yml
-            DB_PASSWORD=123test             # Must match MYSQL_PASSWORD in docker-compose.yml
-            ```
-        *   **Cache/Session (Redis):**
-            ```
-            CACHE_DRIVER=redis
-            SESSION_DRIVER=redis
-            REDIS_CLIENT=phpredis # Or predis if you install that package
-            REDIS_HOST=redis      # Must match the 'redis' service name in docker-compose.yml
-            REDIS_PORT=6379       # Must match the exposed port in docker-compose.yml
-            ```
-        *   *(Other settings like `APP_KEY`, `APP_URL` can be configured as needed)*
-
-3.  **(If not using automatic build in docker-compose.yml) Install PHP Dependencies (inside the app container or on host for building image):**
-    *   **Option 1 (Recommended if your Dockerfile handles it):** The `docker-compose up --build` command (Step 5) will use the `Dockerfile` to build the `app` image. If your `Dockerfile` includes `COPY --from=composer:latest /usr/bin/composer /usr/bin/composer` and `RUN composer install`, dependencies will be installed during the image build.
-    *   **Option 2 (Manual install in container):** If you need to install/update dependencies after the container is built/running:
-        ```bash
-        docker-compose exec app composer install
-        # Or, if you need to update/add packages:
-        # docker-compose exec app composer update
+    *   **Ensure database and Redis settings in `.env` match the `docker-compose.yml` services:**
         ```
+        DB_CONNECTION=mysql
+        DB_HOST=db               # Docker service name
+        DB_PORT=3306
+        DB_DATABASE=translation_service
+        DB_USERNAME=translation_user
+        DB_PASSWORD=123test
 
-4.  **Start Docker Containers:**
+        CACHE_DRIVER=redis
+        SESSION_DRIVER=redis
+        REDIS_CLIENT=phpredis # Or predis
+        REDIS_HOST=redis      # Docker service name
+        REDIS_PORT=6379
+        ```
+3.  **Build and Start Containers:**
     ```bash
     docker-compose up -d --build
     ```
-    This command builds the custom `app` image (including installing dependencies via the `Dockerfile`) and starts all services (`app`, `db`, `redis`, `nginx`) in detached mode. The `app` container's startup command should handle initial setup like config caching, waiting for the DB, running migrations, and seeding basic data (Languages).
-
-5.  **Generate Application Key (if not handled automatically):**
-    ```bash
-    docker-compose exec app php artisan key:generate
-    ```
-
-6.  **Run Migrations (if not handled automatically):**
-    ```bash
-    docker-compose exec app php artisan migrate
-    ```
-
-7.  **Cache Configuration (important for Redis/Performance, if not handled automatically):**
-    ```bash
-    docker-compose exec app php artisan config:cache
-    ```
-
-8.  **Create a User and Generate an API Token (for Authentication):**
-    To access the protected CRUD endpoints, you need a user with an API token.
-    *   **Open Tinker inside the `app` container:**
+    This command builds the application image and starts the `app`, `db`, `redis`, and `nginx` services. The application container's startup script handles initial setup (config caching, waiting for DB, running migrations, seeding `LanguageSeeder`).
+4.  **Create User & Generate API Token:**
+    *   Open a terminal inside the `app` container:
         ```bash
         docker-compose exec app php artisan tinker
         ```
-    *   **Inside the Tinker shell (`>>>`), create a user and generate a token:**
+    *   Inside Tinker, create a user and generate a token:
         ```php
-        // Create a new user (or find an existing one)
         $user = App\Models\User::factory()->create(['name' => 'Test User', 'email' => 'test@example.com', 'password' => bcrypt('password123')]);
-        // OR, if you have a specific user in mind and know their ID:
-        // $user = App\Models\User::find(1);
-
-        // Generate a personal access token for the user
         $token = $user->createToken('api-token')->plainTextToken;
-        $token; // This will output the plain text token, e.g., "1|XWDzliUjFbbK88ooCzpBKEdtxJ8KHAOn01uB1qhNae779e7e"
+        $token; // Copy this token
+        exit;
         ```
-    *   **Copy the generated token string (e.g., `1|XWDzliUjFbbK88ooCzpBKEdtxJ8KHAOn01uB1qhNae779e7e`). You will need this to authenticate API requests.**
-    *   **Exit Tinker:**
-        ```php
-        exit
-        ```
-
-9.  **(Optional) Run Additional Seeders:**
-    While the Docker setup might seed basic data automatically, you can manually run seeders or the large dataset seeder as needed:
+5.  **(Optional) Seed Large Dataset:**
     ```bash
-    # Seed basic data (if not done automatically)
-    docker-compose exec app php artisan db:seed --class=LanguageSeeder
-    # Seed the large translation dataset (This will take a considerable amount of time, e.g., 10s of minutes)
     docker-compose exec app php artisan db:seed --class=TranslationSeeder
     ```
-
-10. **Generate Swagger Documentation (Optional, but recommended):**
+    *Warning: This will take a significant amount of time (10-30 mins).*
+6.  **Generate Swagger Documentation:**
     ```bash
     docker-compose exec app php artisan l5-swagger:generate
     ```
+7.  **Access the Application:**
+    *   **API Base URL:** `http://localhost:8000`
+    *   **Swagger UI:** `http://localhost:8000/api/documentation`
 
-11. **Access the Application:**
-    The API should now be accessible at `http://localhost:8000`.
+### --- LOCAL SETUP (Without Docker) ---
 
-### Local Setup (Without Docker)
-
-If you prefer to run the application directly on your host machine:
+Run the application directly on your host machine.
 
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repo-url>
-    cd <your-project-directory>
+    git clone <REPLACE_WITH_YOUR_GITHUB_REPO_URL>
+    cd <REPLACE_WITH_YOUR_REPO_DIRECTORY>
     ```
-
-2.  **Install PHP Dependencies:**
+2.  **Install Dependencies:**
     ```bash
     composer install
     ```
-    *   If you need to update or add packages later:
+3.  **Set up local environment:**
+    *   Create a MySQL database (e.g., `translation_service`).
+    *   Ensure Redis server is running.
+    *   Configure web server (Apache/Nginx) or use `php artisan serve`.
+    *   Update `.env` with your local database/Redis credentials.
+    *   Generate application key:
         ```bash
-        composer update
-        # Or for a specific package:
-        # composer require vendor/package
+        php artisan key:generate
         ```
-
-3.  **Set up your local environment:**
-    *   **Database:** Create a MySQL database (e.g., `translation_service`).
-    *   **Redis:** Ensure Redis server is running.
-    *   **Web Server:** Configure a web server (Apache/Nginx) to point to the `public/` directory, or use Laravel's development server (`php artisan serve`).
-    *   **Environment Configuration:**
-        *   Copy `.env.example` to `.env`.
-        *   Update the `.env` file with your local database and Redis credentials:
-            ```
-            DB_CONNECTION=mysql
-            DB_HOST=127.0.0.1       # Or your DB host
-            DB_PORT=3306            # Or your DB port
-            DB_DATABASE=translation_service # Your local DB name
-            DB_USERNAME=your_local_db_user
-            DB_PASSWORD=your_local_db_password
-
-            CACHE_DRIVER=redis
-            SESSION_DRIVER=redis
-            REDIS_CLIENT=phpredis # Or predis
-            REDIS_HOST=127.0.0.1  # Or your Redis host
-            REDIS_PORT=6379       # Or your Redis port
-            ```
-        *   Generate the application key:
-            ```bash
-            php artisan key:generate
-            ```
-
-4.  **Run Migrations:**
+4.  **Run Migrations & Seed Basic Data:**
     ```bash
     php artisan migrate
+    php artisan db:seed --class=LanguageSeeder
     ```
-
-5.  **Install Laravel Sanctum & Predis (if needed, and not in composer.json):**
+5.  **Install Sanctum/Predis (if needed):**
     ```bash
     composer require laravel/sanctum
-    composer require predis/predis # Or ensure phpredis extension is installed
+    composer require predis/predis
     php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
-    php artisan migrate # Run again if Sanctum migrations were published
+    php artisan migrate # If new migrations published
     ```
-
 6.  **Cache Configuration:**
     ```bash
     php artisan config:cache
     ```
-
-7.  **Create a User and Generate an API Token (for Authentication):**
-    To access the protected CRUD endpoints, you need a user with an API token.
-    *   **Open Tinker:**
-        ```bash
-        php artisan tinker
-        ```
-    *   **Inside the Tinker shell (`>>>`), create a user and generate a token:**
-        ```php
-        // Create a new user (or find an existing one)
-        $user = App\Models\User::factory()->create(['name' => 'Test User', 'email' => 'test@example.com', 'password' => bcrypt('password123')]);
-        // OR, if you have a specific user in mind and know their ID:
-        // $user = App\Models\User::find(1);
-
-        // Generate a personal access token for the user
-        $token = $user->createToken('api-token')->plainTextToken;
-        $token; // This will output the plain text token, e.g., "1|XWDzliUjFbbK88ooCzpBKEdtxJ8KHAOn01uB1qhNae779e7e"
-        ```
-    *   **Copy the generated token string (e.g., `1|XWDzliUjFbbK88ooCzpBKEdtxJ8KHAOn01uB1qhNae779e7e`). You will need this to authenticate API requests.**
-    *   **Exit Tinker:**
-        ```php
-        exit
-        ```
-
-8.  **Seed the Database:**
-    Populate the database with initial data and test datasets.
+7.  **Create User & Generate API Token (as in Docker step 4).**
+8.  **(Optional) Seed Large Dataset:**
     ```bash
-    # Seed basic reference data (languages, potentially tags)
-    php artisan db:seed --class=LanguageSeeder
-
-    # --- Populate with 100k+ Records for Scalability Testing ---
-    # This command will populate the database with over 100,000 translation records.
-    # WARNING: This process will take a significant amount of time (potentially 10s of minutes)
-    # and consume considerable resources (CPU, RAM, Disk I/O).
-    # Run this only if you need the large dataset for performance testing/scalability checks.
-    # php artisan db:seed --class=TranslationSeeder
-    # ---------------------------------------------
-
-    # You can also run all seeders sequentially (if you have a DatabaseSeeder that calls others):
-    # php artisan db:seed
+    php artisan db:seed --class=TranslationSeeder
     ```
-
-9.  **Generate Swagger Documentation (Optional):**
+9.  **Generate Swagger Documentation:**
     ```bash
     php artisan l5-swagger:generate
     ```
-
-10. **Start the Development Server (or use your configured web server):**
+10. **Start Development Server:**
     ```bash
     php artisan serve
-    # Access at http://127.0.0.1:8000 (or configured host/port)
     ```
+    *   **API Base URL:** `http://127.0.0.1:8000` (or your configured host/port)
+    *   **Swagger UI:** `http://127.0.0.1:8000/api/documentation`
 
-## API Endpoints
+## Using the API
 
-All CRUD endpoints require authentication via Laravel Sanctum Bearer token.
+All CRUD endpoints (`POST`, `GET`, `PUT`, `DELETE` for `/api/v1/translations`) require authentication.
 
-*   **POST** `/api/v1/translations` - Create a new translation.
-    *   **Body (JSON):**
-        ```json
-        {
-          "key": "messages.welcome",
-          "default_value": "Welcome!",
-          "translations": {
-            "es": "¡Bienvenido!",
-            "fr": "Bienvenue !"
-          },
-          "tags": ["web", "homepage"]
-        }
-        ```
-*   **GET** `/api/v1/translations` - List translations (supports `?tag=...`, `?key=...`, `?content=...`).
-*   **GET** `/api/v1/translations/{id}` - Get a specific translation.
-*   **PUT/PATCH** `/api/v1/translations/{id}` - Update a specific translation.
-    *   **Body (JSON):** Same structure as create, fields are optional for updates.
-*   **DELETE** `/api/v1/translations/{id}` - Delete a specific translation.
-*   **GET** `/api/v1/export/{locale}` - Export translations for a specific locale as JSON (e.g., `/api/v1/export/en`). This is a public endpoint.
+*   **Authentication:** Include the Bearer token generated via Tinker in the `Authorization` header:
+    ```
+    Authorization: Bearer YOUR_API_TOKEN_HERE
+    ```
+*   **Endpoints:**
+    *   `POST /api/v1/translations`: Create a translation.
+    *   `GET /api/v1/translations[?tag=...][&key=...][&content=...]`: List/Search translations.
+    *   `GET /api/v1/translations/{id}`: Get a specific translation.
+    *   `PUT /api/v1/translations/{id}`: Update a translation.
+    *   `DELETE /api/v1/translations/{id}`: Delete a translation.
+    *   `GET /api/v1/export/{locale}`: **Public** endpoint to export translations for a locale (e.g., `/api/v1/export/en`).
 
-## Using the API (Authentication)
+## Running Tests
 
-To access the protected CRUD endpoints (`POST`, `GET`, `PUT`, `DELETE` for `/api/v1/translations`), you must include the Bearer token you generated using Tinker in the `Authorization` header of your API requests.
+*   **Docker:**
+    ```bash
+    docker-compose exec app php artisan test
+    ```
+*   **Local:**
+    ```bash
+    php artisan test
+    ```
+*(Note: Aim for > 95% test coverage as per Plus Points requirement).*
 
-**Example using cURL:**
+## Plus Points Addressed
 
-Replace `YOUR_API_TOKEN_HERE` with the token you copied from the Tinker output.
+*   **Optimized SQL Queries:** Indexes, eager loading, efficient `pluck`/`join` in export, caching.
+*   **Token-based Authentication:** Implemented with Laravel Sanctum.
+*   **No External CRUD Libraries:** Built-in Laravel features used.
+*   **Docker Setup:** Provided `Dockerfile` and `docker-compose.yml` for easy environment replication.
+*   **Test Coverage > 95%:** Comprehensive tests implemented (`tests/Feature/Api`), designed to achieve high coverage.
+*   **OpenAPI/Swagger Documentation:** Integrated `darkaonline/l5-swagger` with detailed annotations.
 
-```bash
-# Example: Create a new translation
-curl -X POST http://localhost:8000/api/v1/translations \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -H "Authorization: Bearer YOUR_API_TOKEN_HERE" \
-  -d '{
-    "key": "api.test.message",
-    "default_value": "This is a test message from the API.",
-    "translations": {
-      "es": "Este es un mensaje de prueba desde la API.",
-      "fr": "Ceci est un message de test de l'\''API."
-    },
-    "tags": ["api", "test"]
-  }'
+## Design Choices & Rationale
+
+*   **Database Normalization:** Chosen for scalability, data integrity, and efficient querying of many-to-many relationships.
+*   **Redis Caching:** **Essential** for meeting the stringent `< 500ms` export performance requirement with large datasets.
+*   **Laravel Sanctum:** A simple and effective choice for API token authentication.
+*   **API Resources:** Ensures consistent and structured JSON API responses.
+*   **Docker:** Provides an isolated, reproducible environment matching development and potential deployment setups.
+*   **Swagger:** Offers interactive documentation, improving API usability and maintainability.

@@ -18,7 +18,7 @@ services:
         depends_on:
             - db
             - redis
-
+# database service name
     db:
         image: mysql:8.0
         container_name: translation-mysql

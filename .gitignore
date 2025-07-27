@@ -22,3 +22,25 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Ignore storage directory contents, but allow the directory structure and specific subdirectories
+/storage/*.txt
+/storage/app/*
+/storage/app/public/*
+/storage/debugbar/*
+/storage/framework/cache/*
+!/storage/app/public/avatar
+!/storage/app/public/images
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+# Add other specific public storage paths you want to commit if necessary
+
+# But explicitly DO NOT ignore these, so logs/cache/sessions can be created
+!/storage/logs/.gitkeep
+!/storage/framework/cache/.gitkeep
+!/storage/framework/sessions/.gitkeep
+!/storage/framework/views/.gitkeep
+!/storage/app/.gitkeep
+!/storage/app/public/.gitkeep

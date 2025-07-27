@@ -83,7 +83,7 @@ class TranslationController extends Controller
         if ($request->has('key')) {
             $query->where('key', 'like', "%{$request->key}%");
         }
-
+        //search by filter of content
         if ($request->has('content')) {
             $content = $request->input('content');
 

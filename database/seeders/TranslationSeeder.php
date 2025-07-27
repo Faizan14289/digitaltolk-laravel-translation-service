@@ -23,6 +23,8 @@ class TranslationSeeder extends Seeder
         $languageIds = Language::pluck('id')->toArray();
         $tagIds = Tag::pluck('id')->toArray();
 
+        ini_set('memory_limit', '2G'); // increase to 2GB
+
         if (empty($languageIds)) {
             echo "No languages found. Please seed languages first.\n";
             return;
