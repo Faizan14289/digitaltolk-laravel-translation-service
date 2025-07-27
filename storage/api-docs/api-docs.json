@@ -1,0 +1,379 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Translation Management Service API",
+        "description": "API for managing translations across multiple languages and contexts (tags)",
+        "contact": {
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://my-default-host.com",
+            "description": "API Server"
+        }
+    ],
+    "paths": {
+        "/api/v1/export/{locale}": {
+            "get": {
+                "tags": [
+                    "Export"
+                ],
+                "summary": "Export translations for a locale",
+                "description": "Returns a JSON object of key-value pairs for the specified locale. Optimized for performance (< 500ms).",
+                "operationId": "exportTranslations",
+                "parameters": [
+                    {
+                        "name": "locale",
+                        "in": "path",
+                        "description": "Language code (e.g., en, fr, es)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "messages.welcome": "Welcome!",
+                                    "messages.error": "An error occurred."
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Language not found"
+                    }
+                }
+            }
+        },
+        "/api/v1/translations": {
+            "get": {
+                "tags": [
+                    "Translations"
+                ],
+                "summary": "Get list of translations",
+                "description": "Returns paginated list of translations. Supports filtering by tag, key, or content.",
+                "operationId": "getTranslationsList",
+                "parameters": [
+                    {
+                        "name": "tag",
+                        "in": "query",
+                        "description": "Filter by tag name",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "description": "Filter by translation key (partial)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "content",
+                        "in": "query",
+                        "description": "Filter by content (default_value or translated_text)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TranslationResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/translations/{id}": {
+            "get": {
+                "tags": [
+                    "Translations"
+                ],
+                "summary": "Get translation by ID",
+                "description": "Returns a single translation resource.",
+                "operationId": "getTranslationById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Translation ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/TranslationResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Translation not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Translations"
+                ],
+                "summary": "Update a translation",
+                "description": "Updates an existing translation key, default value, associated languages/translations, or tags.",
+                "operationId": "updateTranslation",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Translation ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "key": {
+                                        "type": "string",
+                                        "example": "messages.greeting",
+                                        "nullable": true
+                                    },
+                                    "default_value": {
+                                        "type": "string",
+                                        "example": "Greetings!",
+                                        "nullable": true
+                                    },
+                                    "translations": {
+                                        "type": "object",
+                                        "example": {
+                                            "es": "¡Saludos!",
+                                            "fr": "Salutations !"
+                                        },
+                                        "nullable": true
+                                    },
+                                    "tags": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "web",
+                                            "greeting"
+                                        ],
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful update",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/TranslationResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Translation not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Translations"
+                ],
+                "summary": "Delete a translation",
+                "description": "Removes a translation and its associated language entries.",
+                "operationId": "deleteTranslation",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Translation ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful deletion"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Translation not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "TranslationResource": {
+                "title": "Translation Resource",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "key": {
+                        "type": "string",
+                        "example": "messages.welcome"
+                    },
+                    "default_value": {
+                        "type": "string",
+                        "example": "Welcome!"
+                    },
+                    "translations": {
+                        "type": "object",
+                        "example": {
+                            "es": "¡Bienvenido!",
+                            "fr": "Bienvenue !"
+                        }
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "web",
+                            "homepage"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "sanctum": {
+                "type": "apiKey",
+                "description": "Laravel Sanctum Token (Bearer <token>)",
+                "name": "Authorization",
+                "in": "header"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Export",
+            "description": "Export"
+        },
+        {
+            "name": "Translations",
+            "description": "Translations"
+        }
+    ]
+}
