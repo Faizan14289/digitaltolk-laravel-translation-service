@@ -1,0 +1,68 @@
+# docker-compose.yml (without 'version')
+services:
+    app:
+        build:
+            args:
+                user: translation
+                uid: 1000
+            context: ./
+            dockerfile: Dockerfile
+        image: translation-app
+        container_name: translation-app
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+        networks:
+            - translation
+        depends_on:
+            - db
+            - redis
+# database service name
+    db:
+        image: mysql:8.0
+        container_name: translation-mysql
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: translation_service
+            MYSQL_ROOT_PASSWORD: 123test_root
+        volumes:
+            - dbdata:/var/lib/mysql
+        ports:
+            - "3306:3306"
+        networks:
+            - translation
+        command: --default-authentication-plugin=mysql_native_password
+
+
+
+    redis:
+        image: redis:alpine
+        container_name: translation-redis
+        restart: unless-stopped
+        ports:
+            - "6379:6379"
+        networks:
+            - translation
+
+    nginx:
+        image: nginx:alpine
+        container_name: translation-nginx
+        restart: unless-stopped
+        ports:
+            - "8000:80"
+        volumes:
+            - ./:/var/www
+            - ./docker-compose/nginx:/etc/nginx/conf.d
+        networks:
+            - translation
+        depends_on:
+            - app
+
+networks:
+    translation:
+        driver: bridge
+
+volumes:
+    dbdata:
+        driver: local
